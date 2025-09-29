@@ -315,22 +315,6 @@ class BattleshipGame {
             const target = this.aiTargets.shift();
             row = target.row;
             col = target.col;
-        } else if (this.aiLastHit) {
-            const adjacent = this.getAdjacentCells(this.aiLastHit.row, this.aiLastHit.col);
-            const validTargets = adjacent.filter(cell => 
-                this.playerGrid[cell.row][cell.col] !== 2 && 
-                this.playerGrid[cell.row][cell.col] !== 3 &&
-                this.playerGrid[cell.row][cell.col] !== 4
-            );
-            
-            if (validTargets.length > 0) {
-                const target = validTargets[Math.floor(Math.random() * validTargets.length)];
-                row = target.row;
-                col = target.col;
-            } else {
-                this.aiLastHit = null;
-                ({ row, col } = this.getRandomTarget());
-            }
         } else {
             ({ row, col } = this.getRandomTarget());
         }
