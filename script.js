@@ -319,7 +319,8 @@ class BattleshipGame {
             const adjacent = this.getAdjacentCells(this.aiLastHit.row, this.aiLastHit.col);
             const validTargets = adjacent.filter(cell => 
                 this.playerGrid[cell.row][cell.col] !== 2 && 
-                this.playerGrid[cell.row][cell.col] !== 3
+                this.playerGrid[cell.row][cell.col] !== 3 &&
+                this.playerGrid[cell.row][cell.col] !== 4
             );
             
             if (validTargets.length > 0) {
@@ -372,7 +373,7 @@ class BattleshipGame {
         do {
             row = Math.floor(Math.random() * this.GRID_SIZE);
             col = Math.floor(Math.random() * this.GRID_SIZE);
-        } while (this.playerGrid[row][col] === 2 || this.playerGrid[row][col] === 3);
+        } while (this.playerGrid[row][col] === 2 || this.playerGrid[row][col] === 3 || this.playerGrid[row][col] === 4);
         
         return { row, col };
     }
@@ -399,6 +400,7 @@ class BattleshipGame {
         adjacent.forEach(cell => {
             if (this.playerGrid[cell.row][cell.col] !== 2 && 
                 this.playerGrid[cell.row][cell.col] !== 3 &&
+                this.playerGrid[cell.row][cell.col] !== 4 &&
                 !this.aiTargets.some(target => target.row === cell.row && target.col === cell.col)) {
                 this.aiTargets.push(cell);
             }
