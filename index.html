@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Battleship Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AI Battleship Game</h1>
+        
+        <div class="game-info">
+            <div class="status" id="gameStatus">Place your ships on the grid</div>
+            <div class="controls">
+                <button id="rotateBtn" class="btn">Rotate Ship</button>
+                <button id="randomBtn" class="btn">Random Placement</button>
+                <button id="startBtn" class="btn" disabled>Start Game</button>
+                <button id="resetBtn" class="btn">Reset Game</button>
+            </div>
+        </div>
+
+        <div class="game-boards">
+            <div class="board-container">
+                <h3>Your Fleet</h3>
+                <div class="grid" id="playerGrid"></div>
+                <div class="ships-remaining">
+                    <h4>Ships to Place:</h4>
+                    <div id="shipsToPlace">
+                        <div class="ship-info">Carrier (5)</div>
+                        <div class="ship-info">Battleship (4)</div>
+                        <div class="ship-info">Cruiser (3)</div>
+                        <div class="ship-info">Submarine (3)</div>
+                        <div class="ship-info">Destroyer (2)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="board-container">
+                <h3>Enemy Waters</h3>
+                <div class="grid" id="aiGrid"></div>
+                <div class="game-stats">
+                    <div>Shots Fired: <span id="shotsFired">0</span></div>
+                    <div>Hits: <span id="hits">0</span></div>
+                    <div>Ships Sunk: <span id="shipsSunk">0</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
