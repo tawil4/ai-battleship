@@ -26,6 +26,8 @@ class BattleshipGame {
         
         this.aiLastHit = null;
         this.aiTargets = [];
+        this.aiHitHistory = [];
+        this.aiDetectedOrientation = null;
         
         this.initializeDOM();
         this.setupEventListeners();
@@ -323,6 +325,8 @@ class BattleshipGame {
             this.playerGrid[row][col] = 2;
             this.aiLastHit = { row, col };
             
+            this.aiHitHistory.push({ row, col });
+            
             const hitShip = this.playerShips.find(ship => this.isShipHit(ship, row, col));
             if (hitShip) {
                 hitShip.hits++;
@@ -330,6 +334,8 @@ class BattleshipGame {
                     this.sinkShip(this.playerGrid, hitShip);
                     this.aiLastHit = null;
                     this.aiTargets = [];
+                    this.aiHitHistory = [];
+                    this.aiDetectedOrientation = null;
                     this.gameStatus.textContent = `AI sunk your ${hitShip.name}!`;
                     
                     if (this.playerShips.every(ship => ship.hits >= ship.size)) {
@@ -379,13 +385,87 @@ class BattleshipGame {
         return adjacent;
     }
     
+    detectShipOrientation() {
+        if (this.aiHitHistory.length < 2) return null;
+        
+        const lastTwoHits = this.aiHitHistory.slice(-2);
+        const [hit1, hit2] = lastTwoHits;
+        
+        if (hit1.row === hit2.row && Math.abs(hit1.col - hit2.col) === 1) {
+            return 'horizontal';
+        }
+        
+        if (hit1.col === hit2.col && Math.abs(hit1.row - hit2.row) === 1) {
+            return 'vertical';
+        }
+        
+        return null;
+    }
+    
+    getDirectionalTargets(row, col, orientation) {
+        const targets = [];
+        
+        if (orientation === 'horizontal') {
+            const directions = [[0, -1], [0, 1]];
+            directions.forEach(([dRow, dCol]) => {
+                const newRow = row + dRow;
+                const newCol = col + dCol;
+                
+                if (newRow >= 0 && newRow < this.GRID_SIZE && 
+                    newCol >= 0 && newCol < this.GRID_SIZE &&
+                    this.playerGrid[newRow][newCol] !== 2 && 
+                    this.playerGrid[newRow][newCol] !== 3 &&
+                    this.playerGrid[newRow][newCol] !== 4) {
+                    targets.push({ row: newRow, col: newCol });
+                }
+            });
+        } else if (orientation === 'vertical') {
+            const directions = [[-1, 0], [1, 0]];
+            directions.forEach(([dRow, dCol]) => {
+                const newRow = row + dRow;
+                const newCol = col + dCol;
+                
+                if (newRow >= 0 && newRow < this.GRID_SIZE && 
+                    newCol >= 0 && newCol < this.GRID_SIZE &&
+                    this.playerGrid[newRow][newCol] !== 2 && 
+                    this.playerGrid[newRow][newCol] !== 3 &&
+                    this.playerGrid[newRow][newCol] !== 4) {
+                    targets.push({ row: newRow, col: newCol });
+                }
+            });
+        }
+        
+        return targets;
+    }
+    
     addAdjacentTargets(row, col) {
-        const adjacent = this.getAdjacentCells(row, col);
-        adjacent.forEach(cell => {
-            if (this.playerGrid[cell.row][cell.col] !== 2 && 
+        this.aiDetectedOrientation = this.detectShipOrientation();
+        
+        let priorityTargets = [];
+        let fallbackTargets = [];
+        
+        if (this.aiDetectedOrientation) {
+            priorityTargets = this.getDirectionalTargets(row, col, this.aiDetectedOrientation);
+            
+            const allAdjacent = this.getAdjacentCells(row, col);
+            fallbackTargets = allAdjacent.filter(cell => {
+                const isDirectional = priorityTargets.some(target => 
+                    target.row === cell.row && target.col === cell.col);
+                return !isDirectional &&
+                    this.playerGrid[cell.row][cell.col] !== 2 && 
+                    this.playerGrid[cell.row][cell.col] !== 3 &&
+                    this.playerGrid[cell.row][cell.col] !== 4;
+            });
+        } else {
+            fallbackTargets = this.getAdjacentCells(row, col).filter(cell =>
+                this.playerGrid[cell.row][cell.col] !== 2 && 
                 this.playerGrid[cell.row][cell.col] !== 3 &&
-                this.playerGrid[cell.row][cell.col] !== 4 &&
-                !this.aiTargets.some(target => target.row === cell.row && target.col === cell.col)) {
+                this.playerGrid[cell.row][cell.col] !== 4
+            );
+        }
+        
+        [...priorityTargets, ...fallbackTargets].forEach(cell => {
+            if (!this.aiTargets.some(target => target.row === cell.row && target.col === cell.col)) {
                 this.aiTargets.push(cell);
             }
         });
@@ -455,6 +535,8 @@ class BattleshipGame {
         
         this.aiLastHit = null;
         this.aiTargets = [];
+        this.aiHitHistory = [];
+        this.aiDetectedOrientation = null;
         
         this.gameStatus.textContent = 'Place your ships on the grid';
         this.startBtn.disabled = true;
