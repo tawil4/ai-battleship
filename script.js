@@ -24,11 +24,6 @@ class BattleshipGame {
         this.hits = 0;
         this.shipsSunk = 0;
         
-        this.aiLastHit = null;
-        this.aiTargets = [];
-        this.aiHitHistory = [];
-        this.aiDetectedOrientation = null;
-        
         this.initializeDOM();
         this.setupEventListeners();
         this.renderGrids();
@@ -118,7 +113,8 @@ class BattleshipGame {
                 ...this.ships[this.currentShipIndex],
                 row, col,
                 horizontal: this.isHorizontal,
-                hits: 0
+                hits: 0,
+                huntData: { hits: [], targets: [], orientation: null }
             });
             
             this.ships[this.currentShipIndex].placed = true;
@@ -219,7 +215,8 @@ class BattleshipGame {
                     this.playerShips.push({
                         ...this.ships[i],
                         row, col, horizontal,
-                        hits: 0
+                        hits: 0,
+                        huntData: { hits: [], targets: [], orientation: null }
                     });
                     this.ships[i].placed = true;
                     placed = true;
@@ -263,7 +260,8 @@ class BattleshipGame {
                     this.aiShips.push({
                         ...this.ships[i],
                         row, col, horizontal,
-                        hits: 0
+                        hits: 0,
+                        huntData: { hits: [], targets: [], orientation: null }
                     });
                     placed = true;
                 }
@@ -312,30 +310,35 @@ class BattleshipGame {
         if (this.gameOver) return;
         
         let row, col;
+        let targetShip = null;
         
-        if (this.aiTargets.length > 0) {
-            const target = this.aiTargets.shift();
-            row = target.row;
-            col = target.col;
-        } else {
+        for (const ship of this.playerShips) {
+            if (ship.huntData.targets.length > 0 && ship.hits < ship.size) {
+                const target = ship.huntData.targets.shift();
+                row = target.row;
+                col = target.col;
+                targetShip = ship;
+                break;
+            }
+        }
+        
+        if (targetShip === null) {
             ({ row, col } = this.getRandomTarget());
         }
         
         if (this.playerGrid[row][col] === 1) {
             this.playerGrid[row][col] = 2;
-            this.aiLastHit = { row, col };
-            
-            this.aiHitHistory.push({ row, col });
             
             const hitShip = this.playerShips.find(ship => this.isShipHit(ship, row, col));
             if (hitShip) {
                 hitShip.hits++;
+                hitShip.huntData.hits.push({ row, col });
+                
                 if (hitShip.hits >= hitShip.size) {
                     this.sinkShip(this.playerGrid, hitShip);
-                    this.aiLastHit = null;
-                    this.aiTargets = [];
-                    this.aiHitHistory = [];
-                    this.aiDetectedOrientation = null;
+                    hitShip.huntData.targets = [];
+                    hitShip.huntData.hits = [];
+                    hitShip.huntData.orientation = null;
                     this.gameStatus.textContent = `AI sunk your ${hitShip.name}!`;
                     
                     if (this.playerShips.every(ship => ship.hits >= ship.size)) {
@@ -344,7 +347,7 @@ class BattleshipGame {
                     }
                 } else {
                     this.gameStatus.textContent = "AI hit your ship!";
-                    this.addAdjacentTargets(row, col);
+                    this.addAdjacentTargets(hitShip, row, col);
                 }
             }
             
@@ -385,10 +388,10 @@ class BattleshipGame {
         return adjacent;
     }
     
-    detectShipOrientation() {
-        if (this.aiHitHistory.length < 2) return null;
+    detectShipOrientation(ship) {
+        if (ship.huntData.hits.length < 2) return null;
         
-        const lastTwoHits = this.aiHitHistory.slice(-2);
+        const lastTwoHits = ship.huntData.hits.slice(-2);
         const [hit1, hit2] = lastTwoHits;
         
         if (hit1.row === hit2.row && Math.abs(hit1.col - hit2.col) === 1) {
@@ -438,14 +441,14 @@ class BattleshipGame {
         return targets;
     }
     
-    addAdjacentTargets(row, col) {
-        this.aiDetectedOrientation = this.detectShipOrientation();
+    addAdjacentTargets(ship, row, col) {
+        ship.huntData.orientation = this.detectShipOrientation(ship);
         
         let priorityTargets = [];
         let fallbackTargets = [];
         
-        if (this.aiDetectedOrientation) {
-            priorityTargets = this.getDirectionalTargets(row, col, this.aiDetectedOrientation);
+        if (ship.huntData.orientation) {
+            priorityTargets = this.getDirectionalTargets(row, col, ship.huntData.orientation);
             
             const allAdjacent = this.getAdjacentCells(row, col);
             fallbackTargets = allAdjacent.filter(cell => {
@@ -465,8 +468,8 @@ class BattleshipGame {
         }
         
         [...priorityTargets, ...fallbackTargets].forEach(cell => {
-            if (!this.aiTargets.some(target => target.row === cell.row && target.col === cell.col)) {
-                this.aiTargets.push(cell);
+            if (!ship.huntData.targets.some(target => target.row === cell.row && target.col === cell.col)) {
+                ship.huntData.targets.push(cell);
             }
         });
     }
@@ -532,11 +535,6 @@ class BattleshipGame {
         this.shotsFired = 0;
         this.hits = 0;
         this.shipsSunk = 0;
-        
-        this.aiLastHit = null;
-        this.aiTargets = [];
-        this.aiHitHistory = [];
-        this.aiDetectedOrientation = null;
         
         this.gameStatus.textContent = 'Place your ships on the grid';
         this.startBtn.disabled = true;
