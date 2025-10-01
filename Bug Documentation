@@ -1,1 +1,70 @@
+### Bug Fix 1: AI Targeting Logic Ignored Sunk Ships
+
+**Issue:**  
+The AI was wasting moves by targeting tiles that already contained sunk ships (grid value `4`). This resulted in inefficient gameplay and poor AI decision-making, especially in later stages of the game.
+
+**Fix:**  
+Updated the AI logic to exclude sunk ship tiles (`grid[row][col] !== 4`) in the following functions:
+- `getRandomTarget()` – to avoid selecting sunk tiles at random
+- `aiTurn()` – to correctly filter valid follow-up targets
+- `addAdjacentTargets()` – to prevent adding adjacent cells next to sunk ships
+
+This fix ensures the AI behaves more intelligently and avoids unnecessary moves.
+
+
+
+
+### Bug Fix 2: AI Adjacent Targeting Priority
+
+**Issue:**  
+The AI would sometimes hit a ship and then start targeting random distant tiles, instead of finishing off the nearby ship. This was caused by a dual targeting system using both `aiTargets` and `aiLastHit`, which led to inconsistent behavior and premature fallback to random targeting.
+
+**Fix:**  
+Simplified the targeting logic by removing the `aiLastHit` fallback branch. The AI now fully relies on the `aiTargets` queue to systematically target all adjacent squares before reverting to random mode. This ensures consistent and intelligent ship-hunting behavior.
+
+This fix improves reliability and prioritization in the AI’s targeting sequence.
+
+
+
+
+### Bug Fix 3: AI Ship Orientation Detection After 2+ Hits
+
+**Issue:**  
+Previously, after two or more successful hits on a ship, the AI would continue targeting adjacent squares at random, without recognizing the ship’s orientation. This led to inefficient targeting and longer times to sink ships.
+
+**Fix:**  
+Implemented logic for detecting ship orientation based on hit patterns and targeting along the detected axis. Key changes include:
+- Introduced `aiHitHistory` to track recent successful hits
+- Added `aiDetectedOrientation` to store the inferred direction (`horizontal`, `vertical`, or `null`)
+- Created `detectShipOrientation()` to analyze recent hits
+- Created `getDirectionalTargets()` to prioritize in-line targeting
+- Enhanced `addAdjacentTargets()` to use directional targets before falling back to general adjacent cells
+- Hit history and orientation are reset after a ship is sunk
+
+This fix significantly improves the AI's efficiency in sinking ships once a hit streak is established.
+
+
+
+
+### Bug Fix 4: AI Decision-Making with Per-Ship Tracking
+
+**Issue:**  
+The AI used global state variables for tracking hits, targets, and orientation, which caused bugs when multiple ships were partially damaged. The AI would lose track of some ships or confuse hits across different ships, leading to inefficient or incorrect targeting.
+
+**Fix:**  
+Refactored AI to use per-ship tracking by adding a `huntData` object to each ship, containing:
+- `hits[]` — successful hit coordinates for that ship
+- `targets[]` — queued targets related to that ship
+- `orientation` — detected orientation of that specific ship
+
+Key changes:
+- Removed global state variables (`aiLastHit`, `aiTargets`, `aiHitHistory`, `aiDetectedOrientation`)
+- Updated AI turn logic to prioritize ships individually based on their hunt data
+- Cleared hunt data only for the sunk ship, preserving data for others
+- Improved orientation detection and targeting on a per-ship basis
+
+This fix resolves bugs where the AI lost track of damaged ships or mixed hit data, improving multi-ship hunting accuracy and efficiency.
+
+
+
 
