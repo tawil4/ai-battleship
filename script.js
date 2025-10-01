@@ -175,8 +175,8 @@ class BattleshipGame {
         const row = parseInt(e.target.dataset.row);
         const col = parseInt(e.target.dataset.col);
         
-        // Prevent attacking same cell twice (already hit or miss)
-        if (this.aiGrid[row][col] === 2 || this.aiGrid[row][col] === 3) return;
+        // Prevent attacking same cell twice (already hit, miss, or sunk)
+        if (this.aiGrid[row][col] === 2 || this.aiGrid[row][col] === 3 || this.aiGrid[row][col] === 4) return;
         
         this.playerShoot(row, col);
     }
