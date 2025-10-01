@@ -68,3 +68,21 @@ This fix resolves bugs where the AI lost track of damaged ships or mixed hit dat
 
 
 
+### Bug Fix 5: Clicking Sunk Enemy Ship Cells Wasted Player Turns
+
+**Issue:**  
+Players could click on already-sunk enemy ship cells (grid value `4`), and the game treated the click as a miss. This incorrectly consumed the player's turn and affected game stats.
+
+**Fix:**  
+Updated the `handleAIGridClick()` function to include a check for sunk ship cells (`this.aiGrid[row][col] === 4`) in the click validation logic. This prevents interaction with already-sunk ship tiles.
+
+Also:
+- Resolved merge conflicts by preserving the newer per-ship AI tracking logic.
+- Manually tested to confirm that clicking sunk cells no longer wastes turns or registers as attacks.
+
+This fix ensures proper turn handling and prevents unnecessary penalties for clicking sunk ship tiles.
+
+
+
+
+
