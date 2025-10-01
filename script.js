@@ -1,6 +1,11 @@
+// Main Battleship game class that handles all game logic and UI interactions
 class BattleshipGame {
+    // Initialize the game with default settings and setup
     constructor() {
+        // Game board configuration
         this.GRID_SIZE = 10;
+        
+        // Define all ships with their names, sizes, and placement status
         this.ships = [
             { name: 'Carrier', size: 5, placed: false },
             { name: 'Battleship', size: 4, placed: false },
@@ -9,36 +14,45 @@ class BattleshipGame {
             { name: 'Destroyer', size: 2, placed: false }
         ];
         
+        // Create empty grids for player and AI (10x10 arrays filled with 0s)
         this.playerGrid = this.createEmptyGrid();
         this.aiGrid = this.createEmptyGrid();
+        
+        // Arrays to store placed ship objects with their positions
         this.playerShips = [];
         this.aiShips = [];
         
-        this.gameStarted = false;
-        this.gameOver = false;
-        this.currentPlayer = 'player';
-        this.isHorizontal = true;
-        this.currentShipIndex = 0;
+        // Game state flags
+        this.gameStarted = false;  // True when battle begins
+        this.gameOver = false;     // True when someone wins
+        this.currentPlayer = 'player';  // Tracks whose turn it is
+        this.isHorizontal = true;  // Ship orientation during placement
+        this.currentShipIndex = 0; // Index of ship being placed
         
-        this.shotsFired = 0;
-        this.hits = 0;
-        this.shipsSunk = 0;
+        // Player statistics tracking
+        this.shotsFired = 0;  // Total shots player has taken
+        this.hits = 0;        // Successful hits on AI ships
+        this.shipsSunk = 0;   // Number of AI ships destroyed
         
-        this.aiLastHit = null;
-        this.aiTargets = [];
-        this.aiHitHistory = [];
-        this.aiDetectedOrientation = null;
+        // AI targeting system for intelligent ship hunting
+        this.aiLastHit = null;  // Last successful hit coordinates
+        this.aiTargets = [];    // Queue of cells to target next
+        this.aiHitHistory = []; // All successful AI hits on current ship
+        this.aiDetectedOrientation = null;  // 'horizontal' or 'vertical' once detected
         
+        // Initialize game UI and event handlers
         this.initializeDOM();
         this.setupEventListeners();
         this.renderGrids();
         this.updateShipsToPlace();
     }
     
+    // Creates a 10x10 grid filled with zeros (0 = empty water)
     createEmptyGrid() {
         return Array(this.GRID_SIZE).fill().map(() => Array(this.GRID_SIZE).fill(0));
     }
     
+    // Cache references to all DOM elements for performance
     initializeDOM() {
         this.playerGridElement = document.getElementById('playerGrid');
         this.aiGridElement = document.getElementById('aiGrid');
@@ -52,6 +66,7 @@ class BattleshipGame {
         this.shipsSunkElement = document.getElementById('shipsSunk');
     }
     
+    // Attach click handlers to all game buttons
     setupEventListeners() {
         this.rotateBtn.addEventListener('click', () => {
             this.isHorizontal = !this.isHorizontal;
@@ -63,14 +78,19 @@ class BattleshipGame {
         this.resetBtn.addEventListener('click', () => this.resetGame());
     }
     
+    // Render both player and AI grids
     renderGrids() {
         this.renderGrid(this.playerGridElement, this.playerGrid, true);
         this.renderGrid(this.aiGridElement, this.aiGrid, false);
     }
     
+    // Render a single grid with appropriate cell states and event listeners
+    // Grid values: 0=empty, 1=ship, 2=hit, 3=miss, 4=sunk
     renderGrid(gridElement, grid, isPlayerGrid) {
+        // Clear existing grid
         gridElement.innerHTML = '';
         
+        // Create all 100 cells (10x10)
         for (let row = 0; row < this.GRID_SIZE; row++) {
             for (let col = 0; col < this.GRID_SIZE; col++) {
                 const cell = document.createElement('div');
@@ -80,6 +100,7 @@ class BattleshipGame {
                 
                 const cellValue = grid[row][col];
                 
+                // Apply visual styling based on cell state
                 if (cellValue === 1 && isPlayerGrid) {
                     cell.classList.add('ship');
                 } else if (cellValue === 2) {
@@ -93,11 +114,14 @@ class BattleshipGame {
                     cell.textContent = '💀';
                 }
                 
+                // Add appropriate event listeners based on game state
                 if (isPlayerGrid && !this.gameStarted) {
+                    // During setup: allow ship placement on player grid
                     cell.addEventListener('click', (e) => this.handlePlayerGridClick(e));
                     cell.addEventListener('mouseenter', (e) => this.showShipPreview(e));
                     cell.addEventListener('mouseleave', () => this.clearPreview());
                 } else if (!isPlayerGrid && this.gameStarted && this.currentPlayer === 'player') {
+                    // During battle: allow attacks on AI grid
                     cell.addEventListener('click', (e) => this.handleAIGridClick(e));
                 }
                 
@@ -106,14 +130,19 @@ class BattleshipGame {
         }
     }
     
+    // Handle clicking on player grid during ship placement phase
     handlePlayerGridClick(e) {
         if (this.gameStarted || this.currentShipIndex >= this.ships.length) return;
         
         const row = parseInt(e.target.dataset.row);
         const col = parseInt(e.target.dataset.col);
         
+        // Check if ship can be placed at this location
         if (this.canPlaceShip(this.playerGrid, row, col, this.ships[this.currentShipIndex].size, this.isHorizontal)) {
+            // Place the ship on the grid
             this.placeShip(this.playerGrid, row, col, this.ships[this.currentShipIndex].size, this.isHorizontal);
+            
+            // Store ship data for hit detection
             this.playerShips.push({
                 ...this.ships[this.currentShipIndex],
                 row, col,
@@ -124,9 +153,11 @@ class BattleshipGame {
             this.ships[this.currentShipIndex].placed = true;
             this.currentShipIndex++;
             
+            // Update UI to show new ship
             this.renderGrids();
             this.updateShipsToPlace();
             
+            // Check if all ships are placed
             if (this.currentShipIndex >= this.ships.length) {
                 this.gameStatus.textContent = 'All ships placed! Ready to start battle.';
                 this.startBtn.disabled = false;
@@ -135,17 +166,21 @@ class BattleshipGame {
         }
     }
     
+    // Handle clicking on AI grid to attack during battle
     handleAIGridClick(e) {
+        // Only allow attacks during player's turn
         if (this.currentPlayer !== 'player' || this.gameOver) return;
         
         const row = parseInt(e.target.dataset.row);
         const col = parseInt(e.target.dataset.col);
         
+        // Prevent attacking same cell twice (already hit or miss)
         if (this.aiGrid[row][col] === 2 || this.aiGrid[row][col] === 3) return;
         
         this.playerShoot(row, col);
     }
     
+    // Show visual preview of ship placement on hover
     showShipPreview(e) {
         if (this.gameStarted || this.currentShipIndex >= this.ships.length) return;
         
@@ -153,11 +188,14 @@ class BattleshipGame {
         const col = parseInt(e.target.dataset.col);
         const shipSize = this.ships[this.currentShipIndex].size;
         
+        // Remove any existing preview
         this.clearPreview();
         
+        // Determine if placement is valid (green) or invalid (red)
         const canPlace = this.canPlaceShip(this.playerGrid, row, col, shipSize, this.isHorizontal);
         const previewClass = canPlace ? 'preview' : 'invalid-preview';
         
+        // Highlight all cells the ship would occupy
         for (let i = 0; i < shipSize; i++) {
             const previewRow = this.isHorizontal ? row : row + i;
             const previewCol = this.isHorizontal ? col + i : col;
@@ -170,6 +208,7 @@ class BattleshipGame {
         }
     }
     
+    // Remove all preview highlighting from player grid
     clearPreview() {
         const cells = this.playerGridElement.querySelectorAll('.cell');
         cells.forEach(cell => {
@@ -177,11 +216,15 @@ class BattleshipGame {
         });
     }
     
+    // Check if a ship can be legally placed at the given position
+    // Returns false if out of bounds or overlapping another ship
     canPlaceShip(grid, row, col, size, horizontal) {
+        // Check each cell the ship would occupy
         for (let i = 0; i < size; i++) {
             const checkRow = horizontal ? row : row + i;
             const checkCol = horizontal ? col + i : col;
             
+            // Validate: within bounds and cell is empty (0)
             if (checkRow < 0 || checkRow >= this.GRID_SIZE || 
                 checkCol < 0 || checkCol >= this.GRID_SIZE || 
                 grid[checkRow][checkCol] !== 0) {
@@ -191,6 +234,7 @@ class BattleshipGame {
         return true;
     }
     
+    // Place a ship on the grid by marking cells with 1
     placeShip(grid, row, col, size, horizontal) {
         for (let i = 0; i < size; i++) {
             const placeRow = horizontal ? row : row + i;
@@ -199,16 +243,20 @@ class BattleshipGame {
         }
     }
     
+    // Automatically place all player ships randomly on the grid
     randomPlacement() {
+        // Reset player grid and ship data
         this.playerGrid = this.createEmptyGrid();
         this.playerShips = [];
         this.ships.forEach(ship => ship.placed = false);
         this.currentShipIndex = 0;
         
+        // Place each ship with random position and orientation
         for (let i = 0; i < this.ships.length; i++) {
             let placed = false;
             let attempts = 0;
             
+            // Try up to 100 times to find valid placement
             while (!placed && attempts < 100) {
                 const row = Math.floor(Math.random() * this.GRID_SIZE);
                 const col = Math.floor(Math.random() * this.GRID_SIZE);
@@ -228,6 +276,7 @@ class BattleshipGame {
             }
         }
         
+        // Mark all ships as placed and enable start button
         this.currentShipIndex = this.ships.length;
         this.renderGrids();
         this.updateShipsToPlace();
@@ -236,6 +285,7 @@ class BattleshipGame {
         this.rotateBtn.disabled = true;
     }
     
+    // Begin the battle phase after all ships are placed
     startGame() {
         this.gameStarted = true;
         this.placeAIShips();
@@ -245,10 +295,12 @@ class BattleshipGame {
         this.renderGrids();
     }
     
+    // Randomly place all AI ships on the AI grid
     placeAIShips() {
         this.aiGrid = this.createEmptyGrid();
         this.aiShips = [];
         
+        // Place each AI ship randomly
         for (let i = 0; i < this.ships.length; i++) {
             let placed = false;
             let attempts = 0;
@@ -272,24 +324,32 @@ class BattleshipGame {
         }
     }
     
+    // Execute player's attack on AI grid at specified coordinates
     playerShoot(row, col) {
+        // Update shot counter
         this.shotsFired++;
         this.shotsFiredElement.textContent = this.shotsFired;
         
+        // Check if shot hit a ship (cell value is 1)
         if (this.aiGrid[row][col] === 1) {
+            // Mark as hit (2) and update stats
             this.aiGrid[row][col] = 2;
             this.hits++;
             this.hitsElement.textContent = this.hits;
             
+            // Find which ship was hit
             const hitShip = this.aiShips.find(ship => this.isShipHit(ship, row, col));
             if (hitShip) {
                 hitShip.hits++;
+                
+                // Check if ship is completely destroyed
                 if (hitShip.hits >= hitShip.size) {
                     this.sinkShip(this.aiGrid, hitShip);
                     this.shipsSunk++;
                     this.shipsSunkElement.textContent = this.shipsSunk;
                     this.gameStatus.textContent = `You sunk the enemy ${hitShip.name}!`;
                     
+                    // Check for victory (all AI ships sunk)
                     if (this.shipsSunk >= this.ships.length) {
                         this.endGame('player');
                         return;
@@ -299,6 +359,7 @@ class BattleshipGame {
                 }
             }
         } else {
+            // Shot missed - mark as miss (3) and switch to AI turn
             this.aiGrid[row][col] = 3;
             this.gameStatus.textContent = "Miss! AI's turn.";
             this.currentPlayer = 'ai';
@@ -308,48 +369,62 @@ class BattleshipGame {
         this.renderGrids();
     }
     
+    // Execute AI's turn with intelligent targeting
     aiTurn() {
         if (this.gameOver) return;
         
         let row, col;
         
+        // Use smart targeting if AI has queued targets, otherwise random
         if (this.aiTargets.length > 0) {
             const target = this.aiTargets.shift();
             row = target.row;
             col = target.col;
         } else {
+            // No targets queued, pick random untargeted cell
             ({ row, col } = this.getRandomTarget());
         }
         
+        // Check if AI hit a player ship
         if (this.playerGrid[row][col] === 1) {
+            // Mark as hit and record for targeting algorithm
             this.playerGrid[row][col] = 2;
             this.aiLastHit = { row, col };
             
             this.aiHitHistory.push({ row, col });
             
+            // Find which player ship was hit
             const hitShip = this.playerShips.find(ship => this.isShipHit(ship, row, col));
             if (hitShip) {
                 hitShip.hits++;
+                
+                // Check if ship is sunk
                 if (hitShip.hits >= hitShip.size) {
                     this.sinkShip(this.playerGrid, hitShip);
+                    
+                    // Reset AI targeting after sinking ship
                     this.aiLastHit = null;
                     this.aiTargets = [];
                     this.aiHitHistory = [];
                     this.aiDetectedOrientation = null;
                     this.gameStatus.textContent = `AI sunk your ${hitShip.name}!`;
                     
+                    // Check for AI victory
                     if (this.playerShips.every(ship => ship.hits >= ship.size)) {
                         this.endGame('ai');
                         return;
                     }
                 } else {
+                    // Ship damaged but not sunk - add adjacent cells to target queue
                     this.gameStatus.textContent = "AI hit your ship!";
                     this.addAdjacentTargets(row, col);
                 }
             }
             
+            // AI gets another turn after a hit
             setTimeout(() => this.aiTurn(), 1000);
         } else {
+            // AI missed - mark cell and switch to player turn
             this.playerGrid[row][col] = 3;
             this.gameStatus.textContent = "AI missed! Your turn.";
             this.currentPlayer = 'player';
@@ -358,8 +433,11 @@ class BattleshipGame {
         this.renderGrids();
     }
     
+    // Get random untargeted cell for AI to attack
     getRandomTarget() {
         let row, col;
+        
+        // Keep generating random coordinates until finding an untargeted cell
         do {
             row = Math.floor(Math.random() * this.GRID_SIZE);
             col = Math.floor(Math.random() * this.GRID_SIZE);
@@ -368,8 +446,10 @@ class BattleshipGame {
         return { row, col };
     }
     
+    // Get all cells adjacent (up, down, left, right) to given coordinates
     getAdjacentCells(row, col) {
         const adjacent = [];
+        // Four cardinal directions: up, down, left, right
         const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
         
         directions.forEach(([dRow, dCol]) => {
@@ -385,26 +465,33 @@ class BattleshipGame {
         return adjacent;
     }
     
+    // Analyze hit history to determine if ship is horizontal or vertical
     detectShipOrientation() {
+        // Need at least 2 hits to detect orientation
         if (this.aiHitHistory.length < 2) return null;
         
         const lastTwoHits = this.aiHitHistory.slice(-2);
         const [hit1, hit2] = lastTwoHits;
         
+        // Same row and adjacent columns = horizontal
         if (hit1.row === hit2.row && Math.abs(hit1.col - hit2.col) === 1) {
             return 'horizontal';
         }
         
+        // Same column and adjacent rows = vertical
         if (hit1.col === hit2.col && Math.abs(hit1.row - hit2.row) === 1) {
             return 'vertical';
         }
         
+        // Hits not adjacent or diagonal
         return null;
     }
     
+    // Get cells in line with detected ship orientation for focused targeting
     getDirectionalTargets(row, col, orientation) {
         const targets = [];
         
+        // For horizontal ships, target left and right
         if (orientation === 'horizontal') {
             const directions = [[0, -1], [0, 1]];
             directions.forEach(([dRow, dCol]) => {
@@ -420,6 +507,7 @@ class BattleshipGame {
                 }
             });
         } else if (orientation === 'vertical') {
+            // For vertical ships, target up and down
             const directions = [[-1, 0], [1, 0]];
             directions.forEach(([dRow, dCol]) => {
                 const newRow = row + dRow;
@@ -438,12 +526,15 @@ class BattleshipGame {
         return targets;
     }
     
+    // Add adjacent cells to AI target queue after scoring a hit
     addAdjacentTargets(row, col) {
+        // Try to detect ship orientation from hit pattern
         this.aiDetectedOrientation = this.detectShipOrientation();
         
-        let priorityTargets = [];
-        let fallbackTargets = [];
+        let priorityTargets = [];  // Targets in line with ship
+        let fallbackTargets = [];  // All adjacent cells
         
+        // If orientation detected, prioritize directional targets
         if (this.aiDetectedOrientation) {
             priorityTargets = this.getDirectionalTargets(row, col, this.aiDetectedOrientation);
             
@@ -457,6 +548,7 @@ class BattleshipGame {
                     this.playerGrid[cell.row][cell.col] !== 4;
             });
         } else {
+            // No orientation detected yet, target all adjacent cells
             fallbackTargets = this.getAdjacentCells(row, col).filter(cell =>
                 this.playerGrid[cell.row][cell.col] !== 2 && 
                 this.playerGrid[cell.row][cell.col] !== 3 &&
@@ -464,6 +556,7 @@ class BattleshipGame {
             );
         }
         
+        // Add targets to queue, avoiding duplicates
         [...priorityTargets, ...fallbackTargets].forEach(cell => {
             if (!this.aiTargets.some(target => target.row === cell.row && target.col === cell.col)) {
                 this.aiTargets.push(cell);
@@ -471,7 +564,9 @@ class BattleshipGame {
         });
     }
     
+    // Check if given coordinates hit a specific ship
     isShipHit(ship, row, col) {
+        // Check each cell occupied by the ship
         for (let i = 0; i < ship.size; i++) {
             const shipRow = ship.horizontal ? ship.row : ship.row + i;
             const shipCol = ship.horizontal ? ship.col + i : ship.col;
@@ -483,6 +578,7 @@ class BattleshipGame {
         return false;
     }
     
+    // Mark all cells of a sunk ship with value 4 (sunk state)
     sinkShip(grid, ship) {
         for (let i = 0; i < ship.size; i++) {
             const shipRow = ship.horizontal ? ship.row : ship.row + i;
@@ -491,10 +587,12 @@ class BattleshipGame {
         }
     }
     
+    // Update the ship placement UI list showing which ships are placed
     updateShipsToPlace() {
         const shipsToPlaceElement = document.getElementById('shipsToPlace');
         shipsToPlaceElement.innerHTML = '';
         
+        // Create list item for each ship
         this.ships.forEach(ship => {
             const shipDiv = document.createElement('div');
             shipDiv.className = `ship-info ${ship.placed ? 'placed' : ''}`;
@@ -503,6 +601,7 @@ class BattleshipGame {
         });
     }
     
+    // End the game and display winner
     endGame(winner) {
         this.gameOver = true;
         this.currentPlayer = null;
@@ -516,7 +615,9 @@ class BattleshipGame {
         this.renderGrids();
     }
     
+    // Reset entire game to initial state for new game
     resetGame() {
+        // Clear all grids and ship data
         this.playerGrid = this.createEmptyGrid();
         this.aiGrid = this.createEmptyGrid();
         this.playerShips = [];
@@ -538,12 +639,14 @@ class BattleshipGame {
         this.aiHitHistory = [];
         this.aiDetectedOrientation = null;
         
+        // Reset UI elements
         this.gameStatus.textContent = 'Place your ships on the grid';
         this.startBtn.disabled = true;
         this.rotateBtn.disabled = false;
         this.randomBtn.disabled = false;
         this.rotateBtn.textContent = 'Rotate Ship';
         
+        // Reset stat displays
         this.shotsFiredElement.textContent = '0';
         this.hitsElement.textContent = '0';
         this.shipsSunkElement.textContent = '0';
@@ -553,6 +656,7 @@ class BattleshipGame {
     }
 }
 
+// Initialize game when page loads
 document.addEventListener('DOMContentLoaded', () => {
     new BattleshipGame();
 });
