@@ -488,13 +488,17 @@ class BattleshipGame {
         return null;
     }
     
-    // Get cells in line with detected ship orientation for focused targeting
     getDirectionalTargets(row, col, orientation) {
         const targets = [];
         
-        // For horizontal ships, target left and right
         if (orientation === 'horizontal') {
             const directions = [[0, -1], [0, 1]];
+            
+            for (let i = directions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [directions[i], directions[j]] = [directions[j], directions[i]];
+            }
+            
             directions.forEach(([dRow, dCol]) => {
                 const newRow = row + dRow;
                 const newCol = col + dCol;
@@ -508,8 +512,13 @@ class BattleshipGame {
                 }
             });
         } else if (orientation === 'vertical') {
-            // For vertical ships, target up and down
             const directions = [[-1, 0], [1, 0]];
+            
+            for (let i = directions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [directions[i], directions[j]] = [directions[j], directions[i]];
+            }
+            
             directions.forEach(([dRow, dCol]) => {
                 const newRow = row + dRow;
                 const newCol = col + dCol;
