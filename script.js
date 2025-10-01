@@ -545,6 +545,15 @@ class BattleshipGame {
         
         if (ship.huntData.orientation && !previousOrientation) {
             ship.huntData.targets = [];
+            
+            ship.huntData.hits.forEach(hit => {
+                const directionalTargets = this.getDirectionalTargets(hit.row, hit.col, ship.huntData.orientation);
+                directionalTargets.forEach(target => {
+                    if (!ship.huntData.targets.some(t => t.row === target.row && t.col === target.col)) {
+                        ship.huntData.targets.push(target);
+                    }
+                });
+            });
         }
         
         if (ship.huntData.orientation) {
