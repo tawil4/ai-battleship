@@ -147,7 +147,8 @@ class BattleshipGame {
                 ...this.ships[this.currentShipIndex],
                 row, col,
                 horizontal: this.isHorizontal,
-                hits: 0
+                hits: 0,
+                huntData: { hits: [], targets: [], orientation: null }
             });
             
             this.ships[this.currentShipIndex].placed = true;
@@ -267,7 +268,8 @@ class BattleshipGame {
                     this.playerShips.push({
                         ...this.ships[i],
                         row, col, horizontal,
-                        hits: 0
+                        hits: 0,
+                        huntData: { hits: [], targets: [], orientation: null }
                     });
                     this.ships[i].placed = true;
                     placed = true;
@@ -315,7 +317,8 @@ class BattleshipGame {
                     this.aiShips.push({
                         ...this.ships[i],
                         row, col, horizontal,
-                        hits: 0
+                        hits: 0,
+                        huntData: { hits: [], targets: [], orientation: null }
                     });
                     placed = true;
                 }
@@ -374,7 +377,9 @@ class BattleshipGame {
         if (this.gameOver) return;
         
         let row, col;
+        let targetShip = null;
         
+<<<<<<< HEAD
         // Use smart targeting if AI has queued targets, otherwise random
         if (this.aiTargets.length > 0) {
             const target = this.aiTargets.shift();
@@ -382,6 +387,19 @@ class BattleshipGame {
             col = target.col;
         } else {
             // No targets queued, pick random untargeted cell
+=======
+        for (const ship of this.playerShips) {
+            if (ship.huntData.targets.length > 0 && ship.hits < ship.size) {
+                const target = ship.huntData.targets.shift();
+                row = target.row;
+                col = target.col;
+                targetShip = ship;
+                break;
+            }
+        }
+        
+        if (targetShip === null) {
+>>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
             ({ row, col } = this.getRandomTarget());
         }
         
@@ -389,14 +407,12 @@ class BattleshipGame {
         if (this.playerGrid[row][col] === 1) {
             // Mark as hit and record for targeting algorithm
             this.playerGrid[row][col] = 2;
-            this.aiLastHit = { row, col };
-            
-            this.aiHitHistory.push({ row, col });
             
             // Find which player ship was hit
             const hitShip = this.playerShips.find(ship => this.isShipHit(ship, row, col));
             if (hitShip) {
                 hitShip.hits++;
+<<<<<<< HEAD
                 
                 // Check if ship is sunk
                 if (hitShip.hits >= hitShip.size) {
@@ -407,6 +423,15 @@ class BattleshipGame {
                     this.aiTargets = [];
                     this.aiHitHistory = [];
                     this.aiDetectedOrientation = null;
+=======
+                hitShip.huntData.hits.push({ row, col });
+                
+                if (hitShip.hits >= hitShip.size) {
+                    this.sinkShip(this.playerGrid, hitShip);
+                    hitShip.huntData.targets = [];
+                    hitShip.huntData.hits = [];
+                    hitShip.huntData.orientation = null;
+>>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
                     this.gameStatus.textContent = `AI sunk your ${hitShip.name}!`;
                     
                     // Check for AI victory
@@ -417,7 +442,7 @@ class BattleshipGame {
                 } else {
                     // Ship damaged but not sunk - add adjacent cells to target queue
                     this.gameStatus.textContent = "AI hit your ship!";
-                    this.addAdjacentTargets(row, col);
+                    this.addAdjacentTargets(hitShip, row, col);
                 }
             }
             
@@ -465,12 +490,17 @@ class BattleshipGame {
         return adjacent;
     }
     
+<<<<<<< HEAD
     // Analyze hit history to determine if ship is horizontal or vertical
     detectShipOrientation() {
         // Need at least 2 hits to detect orientation
         if (this.aiHitHistory.length < 2) return null;
+=======
+    detectShipOrientation(ship) {
+        if (ship.huntData.hits.length < 2) return null;
+>>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
         
-        const lastTwoHits = this.aiHitHistory.slice(-2);
+        const lastTwoHits = ship.huntData.hits.slice(-2);
         const [hit1, hit2] = lastTwoHits;
         
         // Same row and adjacent columns = horizontal
@@ -526,17 +556,27 @@ class BattleshipGame {
         return targets;
     }
     
+<<<<<<< HEAD
     // Add adjacent cells to AI target queue after scoring a hit
     addAdjacentTargets(row, col) {
         // Try to detect ship orientation from hit pattern
         this.aiDetectedOrientation = this.detectShipOrientation();
+=======
+    addAdjacentTargets(ship, row, col) {
+        ship.huntData.orientation = this.detectShipOrientation(ship);
+>>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
         
         let priorityTargets = [];  // Targets in line with ship
         let fallbackTargets = [];  // All adjacent cells
         
+<<<<<<< HEAD
         // If orientation detected, prioritize directional targets
         if (this.aiDetectedOrientation) {
             priorityTargets = this.getDirectionalTargets(row, col, this.aiDetectedOrientation);
+=======
+        if (ship.huntData.orientation) {
+            priorityTargets = this.getDirectionalTargets(row, col, ship.huntData.orientation);
+>>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
             
             const allAdjacent = this.getAdjacentCells(row, col);
             fallbackTargets = allAdjacent.filter(cell => {
@@ -558,8 +598,8 @@ class BattleshipGame {
         
         // Add targets to queue, avoiding duplicates
         [...priorityTargets, ...fallbackTargets].forEach(cell => {
-            if (!this.aiTargets.some(target => target.row === cell.row && target.col === cell.col)) {
-                this.aiTargets.push(cell);
+            if (!ship.huntData.targets.some(target => target.row === cell.row && target.col === cell.col)) {
+                ship.huntData.targets.push(cell);
             }
         });
     }
@@ -634,12 +674,15 @@ class BattleshipGame {
         this.hits = 0;
         this.shipsSunk = 0;
         
+<<<<<<< HEAD
         this.aiLastHit = null;
         this.aiTargets = [];
         this.aiHitHistory = [];
         this.aiDetectedOrientation = null;
         
         // Reset UI elements
+=======
+>>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
         this.gameStatus.textContent = 'Place your ships on the grid';
         this.startBtn.disabled = true;
         this.rotateBtn.disabled = false;
