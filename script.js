@@ -379,15 +379,6 @@ class BattleshipGame {
         let row, col;
         let targetShip = null;
         
-<<<<<<< HEAD
-        // Use smart targeting if AI has queued targets, otherwise random
-        if (this.aiTargets.length > 0) {
-            const target = this.aiTargets.shift();
-            row = target.row;
-            col = target.col;
-        } else {
-            // No targets queued, pick random untargeted cell
-=======
         for (const ship of this.playerShips) {
             if (ship.huntData.targets.length > 0 && ship.hits < ship.size) {
                 const target = ship.huntData.targets.shift();
@@ -399,7 +390,6 @@ class BattleshipGame {
         }
         
         if (targetShip === null) {
->>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
             ({ row, col } = this.getRandomTarget());
         }
         
@@ -412,18 +402,6 @@ class BattleshipGame {
             const hitShip = this.playerShips.find(ship => this.isShipHit(ship, row, col));
             if (hitShip) {
                 hitShip.hits++;
-<<<<<<< HEAD
-                
-                // Check if ship is sunk
-                if (hitShip.hits >= hitShip.size) {
-                    this.sinkShip(this.playerGrid, hitShip);
-                    
-                    // Reset AI targeting after sinking ship
-                    this.aiLastHit = null;
-                    this.aiTargets = [];
-                    this.aiHitHistory = [];
-                    this.aiDetectedOrientation = null;
-=======
                 hitShip.huntData.hits.push({ row, col });
                 
                 if (hitShip.hits >= hitShip.size) {
@@ -431,7 +409,6 @@ class BattleshipGame {
                     hitShip.huntData.targets = [];
                     hitShip.huntData.hits = [];
                     hitShip.huntData.orientation = null;
->>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
                     this.gameStatus.textContent = `AI sunk your ${hitShip.name}!`;
                     
                     // Check for AI victory
@@ -490,15 +467,8 @@ class BattleshipGame {
         return adjacent;
     }
     
-<<<<<<< HEAD
-    // Analyze hit history to determine if ship is horizontal or vertical
-    detectShipOrientation() {
-        // Need at least 2 hits to detect orientation
-        if (this.aiHitHistory.length < 2) return null;
-=======
     detectShipOrientation(ship) {
         if (ship.huntData.hits.length < 2) return null;
->>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
         
         const lastTwoHits = ship.huntData.hits.slice(-2);
         const [hit1, hit2] = lastTwoHits;
@@ -556,27 +526,14 @@ class BattleshipGame {
         return targets;
     }
     
-<<<<<<< HEAD
-    // Add adjacent cells to AI target queue after scoring a hit
-    addAdjacentTargets(row, col) {
-        // Try to detect ship orientation from hit pattern
-        this.aiDetectedOrientation = this.detectShipOrientation();
-=======
     addAdjacentTargets(ship, row, col) {
         ship.huntData.orientation = this.detectShipOrientation(ship);
->>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
         
         let priorityTargets = [];  // Targets in line with ship
         let fallbackTargets = [];  // All adjacent cells
         
-<<<<<<< HEAD
-        // If orientation detected, prioritize directional targets
-        if (this.aiDetectedOrientation) {
-            priorityTargets = this.getDirectionalTargets(row, col, this.aiDetectedOrientation);
-=======
         if (ship.huntData.orientation) {
             priorityTargets = this.getDirectionalTargets(row, col, ship.huntData.orientation);
->>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
             
             const allAdjacent = this.getAdjacentCells(row, col);
             fallbackTargets = allAdjacent.filter(cell => {
@@ -674,15 +631,6 @@ class BattleshipGame {
         this.hits = 0;
         this.shipsSunk = 0;
         
-<<<<<<< HEAD
-        this.aiLastHit = null;
-        this.aiTargets = [];
-        this.aiHitHistory = [];
-        this.aiDetectedOrientation = null;
-        
-        // Reset UI elements
-=======
->>>>>>> 0c74ffd25725f1362b1e96279d984b955bfa1f3e
         this.gameStatus.textContent = 'Place your ships on the grid';
         this.startBtn.disabled = true;
         this.rotateBtn.disabled = false;
