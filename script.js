@@ -372,7 +372,6 @@ class BattleshipGame {
         this.renderGrids();
     }
     
-    // Execute AI's turn with intelligent targeting
     aiTurn() {
         if (this.gameOver) return;
         
@@ -398,7 +397,6 @@ class BattleshipGame {
             // Mark as hit and record for targeting algorithm
             this.playerGrid[row][col] = 2;
             
-            // Find which player ship was hit
             const hitShip = this.playerShips.find(ship => this.isShipHit(ship, row, col));
             if (hitShip) {
                 hitShip.hits++;
@@ -448,11 +446,14 @@ class BattleshipGame {
         return { row, col };
     }
     
-    // Get all cells adjacent (up, down, left, right) to given coordinates
     getAdjacentCells(row, col) {
         const adjacent = [];
-        // Four cardinal directions: up, down, left, right
         const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        
+        for (let i = directions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [directions[i], directions[j]] = [directions[j], directions[i]];
+        }
         
         directions.forEach(([dRow, dCol]) => {
             const newRow = row + dRow;
@@ -529,8 +530,8 @@ class BattleshipGame {
     addAdjacentTargets(ship, row, col) {
         ship.huntData.orientation = this.detectShipOrientation(ship);
         
-        let priorityTargets = [];  // Targets in line with ship
-        let fallbackTargets = [];  // All adjacent cells
+        let priorityTargets = [];
+        let fallbackTargets = [];
         
         if (ship.huntData.orientation) {
             priorityTargets = this.getDirectionalTargets(row, col, ship.huntData.orientation);
@@ -545,7 +546,6 @@ class BattleshipGame {
                     this.playerGrid[cell.row][cell.col] !== 4;
             });
         } else {
-            // No orientation detected yet, target all adjacent cells
             fallbackTargets = this.getAdjacentCells(row, col).filter(cell =>
                 this.playerGrid[cell.row][cell.col] !== 2 && 
                 this.playerGrid[cell.row][cell.col] !== 3 &&
@@ -553,7 +553,6 @@ class BattleshipGame {
             );
         }
         
-        // Add targets to queue, avoiding duplicates
         [...priorityTargets, ...fallbackTargets].forEach(cell => {
             if (!ship.huntData.targets.some(target => target.row === cell.row && target.col === cell.col)) {
                 ship.huntData.targets.push(cell);
