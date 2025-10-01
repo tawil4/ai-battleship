@@ -537,10 +537,15 @@ class BattleshipGame {
     }
     
     addAdjacentTargets(ship, row, col) {
+        const previousOrientation = ship.huntData.orientation;
         ship.huntData.orientation = this.detectShipOrientation(ship);
         
         let priorityTargets = [];
         let fallbackTargets = [];
+        
+        if (ship.huntData.orientation && !previousOrientation) {
+            ship.huntData.targets = [];
+        }
         
         if (ship.huntData.orientation) {
             priorityTargets = this.getDirectionalTargets(row, col, ship.huntData.orientation);
